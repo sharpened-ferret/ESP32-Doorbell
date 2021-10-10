@@ -1,0 +1,21 @@
+menu "Bot Configuration"
+
+    config WIFI_SSID
+        string "WiFi SSID"
+        default "ssid"
+        help
+            The SSID (network name) for the WiFi network.
+
+    config WIFI_PASSWORD
+        string "WiFi Password"
+        default "password"
+        help
+            The password for the WiFi network.
+
+    config MAXIMUM_RETRY
+        int "Maximum Retry"
+        default 5
+        help
+            Sets the maximum number of connection retry attempts.
+
+endmenu

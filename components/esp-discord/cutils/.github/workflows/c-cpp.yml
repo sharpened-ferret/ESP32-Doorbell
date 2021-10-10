@@ -1,0 +1,25 @@
+name: cutils ci
+
+on: push
+
+jobs:
+  test:
+    name: Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Test cutils
+        run: make test.cutils
+      - name: Test estr
+        run: make test.estr
+      - name: Test xlist
+        run: make test.xlist
+      - name: Test wxp
+        run: make test.wxp
+      - name: Test cmder
+        run: make test.cmder
+      - name: Test all
+        run: make test
+      - name: Clean
+        run: make clean
