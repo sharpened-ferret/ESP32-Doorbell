@@ -18,4 +18,16 @@ menu "Bot Configuration"
         help
             Sets the maximum number of connection retry attempts.
 
+    config DOORBELL_MESSAGE
+        string "Doorbell Message Text"
+        default "@everyone Someone's at the door"
+        help
+            Sets the message to be sent when the doorbell is rung. 
+
+    config CHANNEL_ID
+        string "Channel ID"
+        default "PLACEHOLDER"
+        help
+            Sets the ID of the Discord Channel to post to.
+
 endmenu

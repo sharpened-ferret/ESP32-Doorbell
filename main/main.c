@@ -17,6 +17,8 @@
 #define WIFI_SSID CONFIG_WIFI_SSID
 #define WIFI_PWD CONFIG_WIFI_PASSWORD
 #define MAXIMUM_RETRY CONFIG_MAXIMUM_RETRY
+#define DOORBELL_MESSAGE CONFIG_DOORBELL_MESSAGE
+#define CHANNEL_ID CONFIG_CHANNEL_ID
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -137,7 +139,7 @@ static void bot_event_handler(void* handler_arg, esp_event_base_t base, int32_t 
                 ESP_LOGI("BOT", "Bot %s#%s connected", session->user->username, session->user->discriminator);
                 discord_message_t testMsg = {
                     .content = "Testing Bot Connection.",
-                    .channel_id = "896088029125554207"
+                    .channel_id = CHANNEL_ID
                 };
                 //discord_message_send(bot, &testMsg, NULL);
             }
