@@ -8,6 +8,7 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
 #include "discord.h"
 #include "discord/session.h"
 #include "discord/message.h"
@@ -21,6 +22,7 @@
 #define CONNECTION_MSG_ENABLED CONFIG_CONNECTION_MESSAGE_ENABLED
 #define CONNECTION_MSG CONFIG_CONNECTION_MESSAGE
 #define CHANNEL_ID CONFIG_CHANNEL_ID
+#define BELL_PIN_NUM CONFIG_BELL_PIN_NUMBER
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -33,6 +35,7 @@ static EventGroupHandle_t s_wifi_event_group;
 
  
 static bool BOT_CONNECTED = false;
+static bool RESTART_FLAG = false;
 static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
@@ -134,7 +137,7 @@ void wifi_init_sta(void)
 
 static discord_handle_t bot;
 
-static void bot_event_handler(void* handler_arg, esp_event_base_t base, int32_t event_id, void* event_data) {
+static void bot_discord_event_handler(void* handler_arg, esp_event_base_t base, int32_t event_id, void* event_data) {
     discord_event_data_t* data = (discord_event_data_t*) event_data;
 
     switch (event_id) {
@@ -183,29 +186,35 @@ void app_main(void)
     };
 
     bot = discord_create(&cfg);
-    discord_register_events(bot, DISCORD_EVENT_ANY, bot_event_handler, NULL);
+    discord_register_events(bot, DISCORD_EVENT_ANY, bot_discord_event_handler, NULL);
     discord_login(bot);
 
 
     printf("Bot created!\n");
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("This is ESP32 chip with %d CPU cores, WiFi%s%s, ",
-            chip_info.cores,
-            (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-            (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
 
-    printf("silicon revision %d, ", chip_info.revision);
 
-    printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
-            (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
+    if (!GPIO_IS_VALID_GPIO(BELL_PIN_NUM)) {
+        printf("Pin %d is not a valid gpio pin. Please check your config file.", BELL_PIN_NUM);
+        RESTART_FLAG = true;
+    }
 
-    // for (int i = 10; i >= 0; i--) {
-    //     printf("Restarting in %d seconds...\n", i);
-    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    // }
-    // printf("Restarting now.\n");
-    // fflush(stdout);
-    // esp_restart();
+    while (!RESTART_FLAG) {
+        if (gpio_get_level(BELL_PIN_NUM)) {
+            if (BOT_CONNECTED) {
+                    discord_message_t bellMsg = {
+                        .content = DOORBELL_MESSAGE,
+                        .channel_id = CHANNEL_ID
+                    };
+                    discord_message_send(bot, &bellMsg, NULL);
+            }
+        }
+    }
+
+    for (int i = 10; i >= 0; i--) {
+            printf("Restarting in %d seconds...\n", i);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+    printf("Restarting now.\n");
+    fflush(stdout);
+    esp_restart();
 }

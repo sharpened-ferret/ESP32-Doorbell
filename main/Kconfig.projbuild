@@ -25,6 +25,12 @@ menu "Bot Configuration"
         help
             Sets the ID of the Discord Channel to post to.
 
+    config BELL_PIN_NUMBER
+        int "Bell GPIO Pin"
+        default 5
+        help
+            Sets the pin that the doorbell buzzer is wired to.
+
     config DOORBELL_MESSAGE
         string "Doorbell Message Text"
         default "@everyone Someone's at the door"
