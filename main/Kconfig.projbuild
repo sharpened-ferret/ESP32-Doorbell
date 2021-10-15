@@ -18,16 +18,30 @@ menu "Bot Configuration"
         help
             Sets the maximum number of connection retry attempts.
 
-    config DOORBELL_MESSAGE
-        string "Doorbell Message Text"
-        default "@everyone Someone's at the door"
-        help
-            Sets the message to be sent when the doorbell is rung. 
-
+    
     config CHANNEL_ID
         string "Channel ID"
         default "PLACEHOLDER"
         help
             Sets the ID of the Discord Channel to post to.
 
+    config DOORBELL_MESSAGE
+        string "Doorbell Message Text"
+        default "@everyone Someone's at the door"
+        help
+            Sets the message to be sent when the doorbell is rung. 
+
+    config CONNECTION_MESSAGE_ENABLED
+        bool "Bot Connection Message On/Off"
+        default true
+        help
+            Enables or disables the bot sending a message when it connects. 
+
+    config CONNECTION_MESSAGE
+        string "Bot Connection Message Text"
+        default "BellBot Online"
+        help
+            Sets the message to be sent when the bot connects to the server (when this message is enabled). 
+        
+        
 endmenu

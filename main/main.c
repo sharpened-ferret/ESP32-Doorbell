@@ -18,6 +18,8 @@
 #define WIFI_PWD CONFIG_WIFI_PASSWORD
 #define MAXIMUM_RETRY CONFIG_MAXIMUM_RETRY
 #define DOORBELL_MESSAGE CONFIG_DOORBELL_MESSAGE
+#define CONNECTION_MSG_ENABLED CONFIG_CONNECTION_MESSAGE_ENABLED
+#define CONNECTION_MSG CONFIG_CONNECTION_MESSAGE
 #define CHANNEL_ID CONFIG_CHANNEL_ID
 
 /* FreeRTOS event group to signal when we are connected*/
@@ -29,6 +31,8 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
+ 
+static bool BOT_CONNECTED = false;
 static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
@@ -137,11 +141,21 @@ static void bot_event_handler(void* handler_arg, esp_event_base_t base, int32_t 
         case DISCORD_EVENT_CONNECTED: {
                 discord_session_t* session = (discord_session_t*) data->ptr;
                 ESP_LOGI("BOT", "Bot %s#%s connected", session->user->username, session->user->discriminator);
-                discord_message_t testMsg = {
-                    .content = "Testing Bot Connection.",
-                    .channel_id = CHANNEL_ID
-                };
-                //discord_message_send(bot, &testMsg, NULL);
+                BOT_CONNECTED = true;
+                if (CONNECTION_MSG_ENABLED) {
+                    discord_message_t connectionMsg = {
+                        .content = CONNECTION_MSG,
+                        .channel_id = CHANNEL_ID
+                    };
+                    discord_message_send(bot, &connectionMsg, NULL);
+                }
+                
+            }
+            break;
+
+        case DISCORD_EVENT_DISCONNECTED: {
+                BOT_CONNECTED = false;
+                ESP_LOGI("BOT", "Bot Disconnected");
             }
             break;
     }
