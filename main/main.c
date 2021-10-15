@@ -193,10 +193,10 @@ void app_main(void)
     printf("Bot created!\n");
 
 
-    if (!GPIO_IS_VALID_GPIO(BELL_PIN_NUM)) {
-        printf("Pin %d is not a valid gpio pin. Please check your config file.", BELL_PIN_NUM);
-        RESTART_FLAG = true;
-    }
+    // if (!GPIO_IS_VALID_GPIO(BELL_PIN_NUM)) {
+    //     printf("Pin %d is not a valid gpio pin. Please check your config file.", BELL_PIN_NUM);
+    //     RESTART_FLAG = true;
+    // }
 
     while (!RESTART_FLAG) {
         if (gpio_get_level(BELL_PIN_NUM)) {
@@ -206,15 +206,16 @@ void app_main(void)
                         .channel_id = CHANNEL_ID
                     };
                     discord_message_send(bot, &bellMsg, NULL);
+                    //vTaskDelay(10000 / portTICK_PERIOD_MS);
             }
         }
     }
 
-    for (int i = 10; i >= 0; i--) {
-            printf("Restarting in %d seconds...\n", i);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-    printf("Restarting now.\n");
-    fflush(stdout);
-    esp_restart();
+    // for (int i = 10; i >= 0; i--) {
+    //         printf("Restarting in %d seconds...\n", i);
+    //         vTaskDelay(1000 / portTICK_PERIOD_MS);
+    //     }
+    // printf("Restarting now.\n");
+    // fflush(stdout);
+    // esp_restart();
 }
