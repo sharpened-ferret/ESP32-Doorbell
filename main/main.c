@@ -13,6 +13,7 @@
 #include "discord/session.h"
 #include "discord/message.h"
 #include "estr.h"
+#include "time.h"
 
 /* WiFi config settings */
 #define WIFI_SSID CONFIG_WIFI_SSID
@@ -36,6 +37,7 @@ static EventGroupHandle_t s_wifi_event_group;
  
 static bool BOT_CONNECTED = false;
 static bool RESTART_FLAG = false;
+static time_t LAST_RING = 0;
 static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
@@ -188,9 +190,16 @@ void app_main(void)
     bot = discord_create(&cfg);
     discord_register_events(bot, DISCORD_EVENT_ANY, bot_discord_event_handler, NULL);
     discord_login(bot);
-
-
     printf("Bot created!\n");
+
+
+
+    gpio_set_intr_type(BELL_PIN_NUM, GPIO_INTR_POSEDGE);
+    gpio_isr_handler_add(BELL_PIN_NUM, gpio_isr_handler, (void*) BELL_PIN_NUM)
+
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
+
 
 
     // if (!GPIO_IS_VALID_GPIO(BELL_PIN_NUM)) {
@@ -198,18 +207,18 @@ void app_main(void)
     //     RESTART_FLAG = true;
     // }
 
-    while (!RESTART_FLAG) {
-        if (gpio_get_level(BELL_PIN_NUM)) {
-            if (BOT_CONNECTED) {
-                    discord_message_t bellMsg = {
-                        .content = DOORBELL_MESSAGE,
-                        .channel_id = CHANNEL_ID
-                    };
-                    discord_message_send(bot, &bellMsg, NULL);
-                    //vTaskDelay(10000 / portTICK_PERIOD_MS);
-            }
-        }
-    }
+    // while (!RESTART_FLAG) {
+    //     if (gpio_get_level(BELL_PIN_NUM)) {
+    //         if (BOT_CONNECTED) {
+    //                 discord_message_t bellMsg = {
+    //                     .content = DOORBELL_MESSAGE,
+    //                     .channel_id = CHANNEL_ID
+    //                 };
+    //                 discord_message_send(bot, &bellMsg, NULL);
+    //                 //vTaskDelay(5000 / portTICK_PERIOD_MS);
+    //         }
+    //     }
+    // }
 
     // for (int i = 10; i >= 0; i--) {
     //         printf("Restarting in %d seconds...\n", i);
@@ -218,4 +227,32 @@ void app_main(void)
     // printf("Restarting now.\n");
     // fflush(stdout);
     // esp_restart();
+}
+
+
+static void doorbell_messaging_service(void* arg) {
+    uint32_t gpio_num;
+    for (;;) {
+        if(xQueueReceive(gpio_evt_queue, &gpio_num, portMAX_DELAY)) {
+            time_t current_time = time(null)
+
+            if ((current_time - LAST_RING) > 5) {
+                if (BOT_CONNECTED) {
+                    discord_message_t bellMsg = {
+                        .content = DOORBELL_MESSAGE,
+                        .channel_id = CHANNEL_ID
+                    };
+                    discord_message_send(bot, &bellMsg, NULL);
+                    LAST_RING = current_time;
+                }
+            }
+        }
+    }
+}
+
+
+static void IRAM_ATTR gpio_isr_handler(void* arg)
+{
+    uint32_t gpio_num = (uint32_t) arg;
+    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
