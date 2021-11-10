@@ -31,6 +31,12 @@ menu "Bot Configuration"
         help
             Sets the pin that the doorbell buzzer is wired to.
 
+    config BELL_TIMEOUT
+        int "Doorbell Timeout (Seconds)"
+        default 10
+        help
+            Sets the timeout delay on the doorbell trigger.
+
     config DOORBELL_MESSAGE
         string "Doorbell Message Text"
         default "@everyone Someone's at the door"

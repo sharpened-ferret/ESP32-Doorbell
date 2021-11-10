@@ -24,9 +24,12 @@
 #define CONNECTION_MSG CONFIG_CONNECTION_MESSAGE
 #define CHANNEL_ID CONFIG_CHANNEL_ID
 #define BELL_PIN_NUM CONFIG_BELL_PIN_NUMBER
+#define BELL_TIMEOUT CONFIG_BELL_TIMEOUT
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
+
+static xQueueHandle gpio_evt_queue = NULL;
 
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
@@ -36,7 +39,7 @@ static EventGroupHandle_t s_wifi_event_group;
 
  
 static bool BOT_CONNECTED = false;
-static bool RESTART_FLAG = false;
+//static bool RESTART_FLAG = false;
 static time_t LAST_RING = 0;
 static const char *TAG = "wifi station";
 
@@ -166,6 +169,32 @@ static void bot_discord_event_handler(void* handler_arg, esp_event_base_t base, 
     }
 }
 
+static void doorbell_messaging_service(void* arg) {
+    uint32_t gpio_num;
+    for (;;) {
+        if(xQueueReceive(gpio_evt_queue, &gpio_num, portMAX_DELAY)) {
+            if (BOT_CONNECTED) {
+                discord_message_t bellMsg = {
+                    .content = DOORBELL_MESSAGE,
+                    .channel_id = CHANNEL_ID
+                };
+                discord_message_send(bot, &bellMsg, NULL);
+            }
+        }
+    }
+}
+
+
+static void IRAM_ATTR gpio_isr_handler(void* arg)
+{
+    time_t current_time = time(NULL);
+    if ((current_time - LAST_RING) > BELL_TIMEOUT) {
+        uint32_t gpio_num = (uint32_t) arg;
+        LAST_RING = current_time;
+        xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+    }
+}
+
 void app_main(void)
 {
      //Initialize NVS
@@ -193,32 +222,14 @@ void app_main(void)
     printf("Bot created!\n");
 
 
+    
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    xTaskCreate(doorbell_messaging_service, "gpio_doorbell_trigger", 2048, NULL, 10, NULL);
+
+    gpio_install_isr_service(0);
 
     gpio_set_intr_type(BELL_PIN_NUM, GPIO_INTR_POSEDGE);
-    gpio_isr_handler_add(BELL_PIN_NUM, gpio_isr_handler, (void*) BELL_PIN_NUM)
-
-    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-    xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
-
-
-
-    // if (!GPIO_IS_VALID_GPIO(BELL_PIN_NUM)) {
-    //     printf("Pin %d is not a valid gpio pin. Please check your config file.", BELL_PIN_NUM);
-    //     RESTART_FLAG = true;
-    // }
-
-    // while (!RESTART_FLAG) {
-    //     if (gpio_get_level(BELL_PIN_NUM)) {
-    //         if (BOT_CONNECTED) {
-    //                 discord_message_t bellMsg = {
-    //                     .content = DOORBELL_MESSAGE,
-    //                     .channel_id = CHANNEL_ID
-    //                 };
-    //                 discord_message_send(bot, &bellMsg, NULL);
-    //                 //vTaskDelay(5000 / portTICK_PERIOD_MS);
-    //         }
-    //     }
-    // }
+    gpio_isr_handler_add(BELL_PIN_NUM, gpio_isr_handler, (void*) BELL_PIN_NUM);
 
     // for (int i = 10; i >= 0; i--) {
     //         printf("Restarting in %d seconds...\n", i);
@@ -230,29 +241,3 @@ void app_main(void)
 }
 
 
-static void doorbell_messaging_service(void* arg) {
-    uint32_t gpio_num;
-    for (;;) {
-        if(xQueueReceive(gpio_evt_queue, &gpio_num, portMAX_DELAY)) {
-            time_t current_time = time(null)
-
-            if ((current_time - LAST_RING) > 5) {
-                if (BOT_CONNECTED) {
-                    discord_message_t bellMsg = {
-                        .content = DOORBELL_MESSAGE,
-                        .channel_id = CHANNEL_ID
-                    };
-                    discord_message_send(bot, &bellMsg, NULL);
-                    LAST_RING = current_time;
-                }
-            }
-        }
-    }
-}
-
-
-static void IRAM_ATTR gpio_isr_handler(void* arg)
-{
-    uint32_t gpio_num = (uint32_t) arg;
-    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
-}
