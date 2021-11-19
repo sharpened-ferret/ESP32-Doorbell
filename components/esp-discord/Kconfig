@@ -1,8 +1,0 @@
-menu "Discord"
-
-    config DISCORD_TOKEN
-        string "Token"
-        help
-            Discord bot authentication token
-
-endmenu
