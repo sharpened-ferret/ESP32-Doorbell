@@ -230,14 +230,6 @@ void app_main(void)
 
     gpio_set_intr_type(BELL_PIN_NUM, GPIO_INTR_POSEDGE);
     gpio_isr_handler_add(BELL_PIN_NUM, gpio_isr_handler, (void*) BELL_PIN_NUM);
-
-    // for (int i = 10; i >= 0; i--) {
-    //         printf("Restarting in %d seconds...\n", i);
-    //         vTaskDelay(1000 / portTICK_PERIOD_MS);
-    //     }
-    // printf("Restarting now.\n");
-    // fflush(stdout);
-    // esp_restart();
 }
 
 
